@@ -797,7 +797,7 @@ class MyRandomForestClassifier:
         """
         self.X_train = None 
         self.y_train = None
-        self.tree = None
+        self.trees = None
         self.header = None
         self.attribute_domain = None
 
@@ -823,13 +823,15 @@ class MyRandomForestClassifier:
         """
         # First, make sure everything is represented as a string
         for row in range(len(X)):
-            t[row] = str(t[row])
+            y[row] = str(y[row])
             for col in range(len(X[0])):
                 X[row][col] = str(X[row][col])
 
         # Generate a random stratified test set consisting of one third of the original data set, 
         # with the remaining two thirds of the instances forming the "remainder set".
         X_test, y_test, X_remainder, y_remainder = myevaluation.random_stratified_train_test_split(X, y, test_size=0.33)
+
+        # PROBABLY WANT TO MOVE THE CODE ABOVE OUTSIDE OF THIS FUNCTION...
 
         # Zip together the X and y values for the test and remainder sets
         test_dataset = [X_test[i] + [y_test[i]] for i in range(len(X_test))]
@@ -840,19 +842,66 @@ class MyRandomForestClassifier:
         self.attribute_domains = self.__get_attribute_domain__(X, self.header)
 
         # Generate the N Trees using a bootstrapped sample of the remainder set 
+        all_trees, all_trees_accuracies = [], [] # Create a list of all the trees created and aa parallel list of their accuracies
         for _ in range(N):
-            pass
+            # Get the training and validation sets from the remainder set using bootstrapping
+            train_set, validation_set = self.__get_bootstrapped_train_validation_sets__(remainder_dataset)
+            # Generate the tree
+            available_attributes = self.header.copy()
+            tree = self.__tdidt__(train_set, available_attributes)
+            tree = self.__sort_tree__(tree)
+            # Add the tree to the list
+            all_trees.append(tree)
+            # Get the accuracy of the tree
+            tree_accuracy = self.__get_tree_accuracy__(validation_set)
+            all_trees_accuracies.append(tree_accuracy)
 
-        # Generate the tree
-        available_attributes = self.header.copy()
-        self.tree = self.__tdidt__(train, available_attributes)
-        #self.visualize_tree("tree_DOT_file", "tree_visual")
-        self.tree = self.__sort_tree__(self.tree)
-        #print("\n\n\nTree:",self.tree,"\n\n\n")
+            # TODO: Implement the random sampling of the attributes (F)!!!!!
+
+        # Now that the trees have been generated, go through and pick the M most accurate trees
+        sorted_accuracies = sorted(all_trees_accuracies.copy())
+        accuracy_cutoff = sorted_accuracies[M]
+        count = 0
+        self.trees = []
+        for index in range(N):
+            if all_trees_accuracies[index] <= accuracy_cutoff:
+                self.trees.append(all_trees[index])
+                count += 1
+            if count > M:
+                break
 
     # TODO: Implement this method!!!
     def predict(self, X_test):
         return []
+
+    def __get_tree_accuracy__(self, validation_dataset):
+        return 0
+
+    def __get_bootstrapped_train_validation_sets__(self, table):
+        n = len(table)
+        train_sample_indices, validation_sample_indices = [], []
+        # Get the indices of the training sample (~63% of the dataset)
+        for _ in range(n):
+            rand_index = random.randrange(0, n)
+            train_sample_indices.append(rand_index)
+        # Go through the indices of the dataset and the training indices and get the remainder as the validation indices
+        train_set, validation_set = [], []
+        for index in range(n):
+            if index not in train_sample_indices:
+                validation_sample_indices.append(index)
+        # Now genertate the two sets
+        train_set, validation_set = [], []
+        for index in train_sample_indices:
+            train_set.append(table[index])
+        for index in validation_sample_indices:
+            validation_set.append(table[index])
+
+        return train_set, validation_set
+
+    def __compute_random_attribute_subset__(self, values, F_value):
+        shuffled = values[:] # shallow copy
+        random.shuffle(shuffled)
+        return shuffled[:F_value]
 
     def __get_tree_prediction__(self, instance, curr_tree):
         info_type = curr_tree[0]
@@ -1033,8 +1082,3 @@ class MyRandomForestClassifier:
             att_domains[header[col_index]] = unique_vals
 
         return att_domains
-
-    def compute_random_attribute_subset(self, values, F_value):
-        shuffled = values[:] # shallow copy
-        random.shuffle(shuffled)
-        return shuffled[:F_value]
