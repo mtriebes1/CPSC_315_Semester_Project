@@ -795,8 +795,6 @@ class MyRandomForestClassifier:
         """Initializer for MyDecisionTreeClassifier.
 
         """
-        self.X_train = None 
-        self.y_train = None
         self.trees = None
         self.header = None
         self.attribute_domain = None
@@ -829,23 +827,24 @@ class MyRandomForestClassifier:
 
         # Generate a random stratified test set consisting of one third of the original data set, 
         # with the remaining two thirds of the instances forming the "remainder set".
-        X_test, y_test, X_remainder, y_remainder = myevaluation.random_stratified_train_test_split(X, y, test_size=0.33)
+        test_X, test_y, remainder_X, remainder_y = myevaluation.random_stratified_train_test_split(X, y, test_size=0.33)
 
         # PROBABLY WANT TO MOVE THE CODE ABOVE OUTSIDE OF THIS FUNCTION...
-
-        # Zip together the X and y values for the test and remainder sets
-        test_dataset = [X_test[i] + [y_test[i]] for i in range(len(X_test))]
-        remainder_dataset = [X_remainder[i] + [y_remainder[i]] for i in range(len(X_remainder))]
-        # Create a generic header
-        self.header = ["att"+str(kk) for kk in range(len(X[0]))]
-        # Get the attribute domain dictionary 
-        self.attribute_domains = self.__get_attribute_domain__(X, self.header)
 
         # Generate the N Trees using a bootstrapped sample of the remainder set 
         all_trees, all_trees_accuracies = [], [] # Create a list of all the trees created and aa parallel list of their accuracies
         for _ in range(N):
             # Get the training and validation sets from the remainder set using bootstrapping
-            train_set, validation_set = self.__get_bootstrapped_train_validation_sets__(remainder_dataset)
+            train_X, train_y, validation_X, validation_y = self.__get_bootstrapped_train_validation_sets__(remainder_X, remainder_y)
+            
+            # Create a generic header
+            self.header = ["att"+str(kk) for kk in range(len(train_X[0]))]
+            # Get the attribute domain dictionary 
+            self.attribute_domains = self.__get_attribute_domain__(train_X, self.header)
+
+            # Zip the training data together for tdidt algoritnm
+            train_set = [train_X[i] + [train_y[i]] for i in range(len(train_X))]
+
             # Generate the tree
             available_attributes = self.header.copy()
             tree = self.__tdidt__(train_set, available_attributes)
@@ -853,7 +852,7 @@ class MyRandomForestClassifier:
             # Add the tree to the list
             all_trees.append(tree)
             # Get the accuracy of the tree
-            tree_accuracy = self.__get_tree_accuracy__(validation_set)
+            tree_accuracy = self.__get_tree_accuracy__(validation_X, validation_y)
             all_trees_accuracies.append(tree_accuracy)
 
             # TODO: Implement the random sampling of the attributes (F)!!!!!
@@ -870,15 +869,36 @@ class MyRandomForestClassifier:
             if count > M:
                 break
 
-    # TODO: Implement this method!!!
     def predict(self, X_test):
-        return []
+        # For each test instance, go through every tree and record its prediction. 
+        # Then return the most voted prediction as the result
+        y_predicted = []
+        for X_test_instance in X_test:
+            class_votes = []
+            for tree in self.trees:
+                class_votes.append(self.__get_tree_prediction__(X_test_instance, tree))
+            # Now find the majority label
+            class_labels, counts = myutils.get_categorical_frequencies(class_votes)
+            majority_class = class_labels[counts.index(max(counts))]
+            y_predicted.append(majority_class)
 
-    def __get_tree_accuracy__(self, validation_dataset):
-        return 0
+        return y_predicted
 
-    def __get_bootstrapped_train_validation_sets__(self, table):
-        n = len(table)
+    def __get_tree_accuracy__(self, valid_X, valid_y):
+        # Now run the prediction:
+        pred_y = self.predict(valid_X)
+        # Now get the count of how many were correctly classified
+        correct_count = 0
+        for kk in range(len(pred_y)):
+            if pred_y[kk] == valid_y[kk]:
+                correct_count += 1
+
+        accuracy = correct_count / len(pred_y)
+        return accuracy
+
+    def __get_bootstrapped_train_validation_sets__(self, X_data, y_data):
+
+        n = len(X_data)
         train_sample_indices, validation_sample_indices = [], []
         # Get the indices of the training sample (~63% of the dataset)
         for _ in range(n):
@@ -890,13 +910,15 @@ class MyRandomForestClassifier:
             if index not in train_sample_indices:
                 validation_sample_indices.append(index)
         # Now genertate the two sets
-        train_set, validation_set = [], []
+        train_X, train_y, validation_X, validation_y = [], [], [], []
         for index in train_sample_indices:
-            train_set.append(table[index])
+            train_X.append(X_data[index])
+            train_y.append(y_data[index])
         for index in validation_sample_indices:
-            validation_set.append(table[index])
+            validation_X.append(X_data[index])
+            validation_y.append(y_data[index])
 
-        return train_set, validation_set
+        return train_X, train_y, validation_X, validation_y
 
     def __compute_random_attribute_subset__(self, values, F_value):
         shuffled = values[:] # shallow copy
@@ -938,6 +960,8 @@ class MyRandomForestClassifier:
             return curr_tree
 
     def __tdidt__(self, current_instances, available_attributes):
+        # Choose the F available_attributes to use when generating the tree here????
+
         # select an attribute to split on
         split_attribute = self.__select_attribute__(current_instances, available_attributes)
         available_attributes.remove(split_attribute)
