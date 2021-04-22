@@ -86,6 +86,24 @@ class MyPyTable:
             col.append(row[col_index])
         return col 
 
+    def get_multiple_columns(self, col_names):
+        data_rows, data_cols = self.get_shape()
+        # Get the col indices for the names
+        col_indices = [self.column_names.index(name) for name in col_names]
+
+        # Check if the table is empty -> return an empty col array
+        if data_rows == 0 or data_cols == 0: # Empty table
+            return []
+  
+        data = []
+        for row in self.data:
+            selected_cols = []
+            for col_index in col_indices:
+                selected_cols.append(row[col_index])
+            data.append(selected_cols)
+            
+        return data 
+
     def get_columns_by_indices(self, col_identifier, row_indices):
         data_rows, data_cols = self.get_shape()
 
@@ -106,24 +124,6 @@ class MyPyTable:
             if row_index < data_rows:
                 col.append(self.data[row_index][col_index])
         return col 
-
-    def get_multiple_columns(self, col_names):
-        data_rows, data_cols = self.get_shape()
-        # Get the col indices for the names
-        col_indices = [self.column_names.index(name) for name in col_names]
-
-        # Check if the table is empty -> return an empty col array
-        if data_rows == 0 or data_cols == 0: # Empty table
-            return []
-  
-        data = []
-        for row in self.data:
-            selected_cols = []
-            for col_index in col_indices:
-                selected_cols.append(row[col_index])
-            data.append(selected_cols)
-            
-        return data 
     
     def get_subtable(self, start_row, end_row, start_col, end_col):
         if end_row == "end":
