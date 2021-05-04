@@ -192,9 +192,9 @@ def random_stratified_train_test_split(X, y, test_size=0.33):
         test_cutoff_index = int(group_len * test_size)   
         # Shuffle the group up 
         random.shuffle(group)
-        test_indices.append(group[:test_cutoff_index])
-        remainder_indices.append(group[test_cutoff_index+1:])
-    
+        test_indices += group[:test_cutoff_index]
+        remainder_indices += group[test_cutoff_index+1:]
+
     # Go through and get the X and y sets for each group
     X_test, X_remainder = [], []
     y_test, y_remainder = [], []
@@ -206,6 +206,30 @@ def random_stratified_train_test_split(X, y, test_size=0.33):
         y_remainder.append(y[index])
     
     return X_test, y_test, X_remainder, y_remainder
+
+def get_bootstrapped_train_validation_sets(X_data, y_data):
+
+        n = len(X_data)
+        train_sample_indices, validation_sample_indices = [], []
+        # Get the indices of the training sample (~63% of the dataset)
+        for _ in range(n):
+            rand_index = random.randrange(0, n)
+            train_sample_indices.append(rand_index)
+        # Go through the indices of the dataset and the training indices and get the remainder as the validation indices
+        train_set, validation_set = [], []
+        for index in range(n):
+            if index not in train_sample_indices:
+                validation_sample_indices.append(index)
+        # Now genertate the two sets
+        train_X, train_y, validation_X, validation_y = [], [], [], []
+        for index in train_sample_indices:
+            train_X.append(X_data[index])
+            train_y.append(y_data[index])
+        for index in validation_sample_indices:
+            validation_X.append(X_data[index])
+            validation_y.append(y_data[index])
+
+        return train_X, train_y, validation_X, validation_y
 
 def confusion_matrix(y_true, y_pred, labels):
     """Compute confusion matrix to evaluate the accuracy of a classification.

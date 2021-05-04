@@ -791,15 +791,18 @@ class MyRandomForestClassifier:
         Loosely based on sklearn's DecisionTreeClassifier: https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html
         Terminology: instance = sample = row and attribute = feature = column
     """
-    def __init__(self):
+    def __init__(self, N, M, F):
         """Initializer for MyDecisionTreeClassifier.
 
         """
         self.trees = None
         self.header = None
         self.attribute_domain = None
+        self.N = N
+        self.M = M
+        self.F = F
 
-    def fit(self, X, y, N, M, F):
+    def fit(self, X, y):
         """Fits a random forest ensemble classifier to X_train and y_train using decision trees 
             created with the TDIDT (top down induction of decision tree) algorithm.
 
@@ -819,23 +822,11 @@ class MyRandomForestClassifier:
             Store the tree in the tree attribute.
             Use attribute indexes to construct default attribute names (e.g. "att0", "att1", ...).
         """
-        # First, make sure everything is represented as a string
-        for row in range(len(X)):
-            y[row] = str(y[row])
-            for col in range(len(X[0])):
-                X[row][col] = str(X[row][col])
-
-        # Generate a random stratified test set consisting of one third of the original data set, 
-        # with the remaining two thirds of the instances forming the "remainder set".
-        test_X, test_y, remainder_X, remainder_y = myevaluation.random_stratified_train_test_split(X, y, test_size=0.33)
-
-        # PROBABLY WANT TO MOVE THE CODE ABOVE OUTSIDE OF THIS FUNCTION...
-
-        # Generate the N Trees using a bootstrapped sample of the remainder set 
+        # Generate the N Trees using a bootstrapped sample of the training  set 
         all_trees, all_trees_accuracies = [], [] # Create a list of all the trees created and aa parallel list of their accuracies
-        for _ in range(N):
-            # Get the training and validation sets from the remainder set using bootstrapping
-            train_X, train_y, validation_X, validation_y = self.__get_bootstrapped_train_validation_sets__(remainder_X, remainder_y)
+        for _ in range(self.N):
+            # Get the training and validation sets from the training set using bootstrapping
+            train_X, train_y, validation_X, validation_y = myevaluation.get_bootstrapped_train_validation_sets(X, y)
             
             # Create a generic header
             self.header = ["att"+str(kk) for kk in range(len(train_X[0]))]
@@ -852,21 +843,19 @@ class MyRandomForestClassifier:
             # Add the tree to the list
             all_trees.append(tree)
             # Get the accuracy of the tree
-            tree_accuracy = self.__get_tree_accuracy__(validation_X, validation_y)
+            tree_accuracy = self.__get_single_tree_accuracy(tree, validation_X, validation_y)
             all_trees_accuracies.append(tree_accuracy)
-
-            # TODO: Implement the random sampling of the attributes (F)!!!!!
 
         # Now that the trees have been generated, go through and pick the M most accurate trees
         sorted_accuracies = sorted(all_trees_accuracies.copy())
-        accuracy_cutoff = sorted_accuracies[M]
+        accuracy_cutoff = sorted_accuracies[self.M]
         count = 0
         self.trees = []
-        for index in range(N):
+        for index in range(self.N):
             if all_trees_accuracies[index] <= accuracy_cutoff:
                 self.trees.append(all_trees[index])
                 count += 1
-            if count > M:
+            if count > self.M:
                 break
 
     def predict(self, X_test):
@@ -884,6 +873,21 @@ class MyRandomForestClassifier:
 
         return y_predicted
 
+    def __get_single_tree_accuracy(self, tree, valid_X, valid_y):
+        pred_y = []
+        for X_valid_inst in valid_X:
+            # Get the prediction:
+            pred_y.append(self.__get_tree_prediction__(X_valid_inst, tree))
+
+        # Now get the count of how many were correctly classified
+        correct_count = 0
+        for kk in range(len(pred_y)):
+            if pred_y[kk] == valid_y[kk]:
+                correct_count += 1
+
+        accuracy = correct_count / len(pred_y)
+        return accuracy
+
     def __get_tree_accuracy__(self, valid_X, valid_y):
         # Now run the prediction:
         pred_y = self.predict(valid_X)
@@ -895,30 +899,6 @@ class MyRandomForestClassifier:
 
         accuracy = correct_count / len(pred_y)
         return accuracy
-
-    def __get_bootstrapped_train_validation_sets__(self, X_data, y_data):
-
-        n = len(X_data)
-        train_sample_indices, validation_sample_indices = [], []
-        # Get the indices of the training sample (~63% of the dataset)
-        for _ in range(n):
-            rand_index = random.randrange(0, n)
-            train_sample_indices.append(rand_index)
-        # Go through the indices of the dataset and the training indices and get the remainder as the validation indices
-        train_set, validation_set = [], []
-        for index in range(n):
-            if index not in train_sample_indices:
-                validation_sample_indices.append(index)
-        # Now genertate the two sets
-        train_X, train_y, validation_X, validation_y = [], [], [], []
-        for index in train_sample_indices:
-            train_X.append(X_data[index])
-            train_y.append(y_data[index])
-        for index in validation_sample_indices:
-            validation_X.append(X_data[index])
-            validation_y.append(y_data[index])
-
-        return train_X, train_y, validation_X, validation_y
 
     def __compute_random_attribute_subset__(self, values, F_value):
         shuffled = values[:] # shallow copy
@@ -961,9 +941,10 @@ class MyRandomForestClassifier:
 
     def __tdidt__(self, current_instances, available_attributes):
         # Choose the F available_attributes to use when generating the tree here????
+        rand_attribute_subset = self.__compute_random_attribute_subset__(available_attributes, self.F)
 
         # select an attribute to split on
-        split_attribute = self.__select_attribute__(current_instances, available_attributes)
+        split_attribute = self.__select_attribute__(current_instances, rand_attribute_subset)
         available_attributes.remove(split_attribute)
         # cannot split on the same attribute twice in a branch
         # recall: python is pass by object reference!!
