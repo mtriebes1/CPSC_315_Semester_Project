@@ -61,7 +61,7 @@ def perform_holdout_method(classifier, X, y, test_size=5, random_state=None, shu
         y_test(list of obj): The list of target y values for testing (parallel to X_test)
     """
     X_indices, y_indices = [kk for kk in range(len(X))], [kk for kk in range(len(y))]
-    # Split the auto dataset into a train and test set
+    # Split the dataset into a train and test set
     X_train_indices, X_test_indices, y_train_indices, y_test_indices = train_test_split(X_indices, y_indices, test_size=test_size, random_state=random_state, shuffle=shuffle)   
     
     return fit_classifier(classifier, X, y, X_train_indices, X_test_indices, y_train_indices, y_test_indices, normalize_X=normalize_X)

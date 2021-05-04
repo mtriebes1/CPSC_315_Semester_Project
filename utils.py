@@ -3,7 +3,6 @@ Programmer: Matthew Triebes
 Class: 322-01, Spring 2021
 Programming Assignment #3
 2/21/21
-
 This program is a utils file that contains the functions needed for VGSales.ipynb 
 """
 
@@ -328,10 +327,3 @@ def task_2_helper(genres, genres_updated, ratings):
         arr = []
 
     return biglist
-
-
-
-
-
-
-

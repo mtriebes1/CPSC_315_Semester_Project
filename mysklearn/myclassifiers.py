@@ -273,7 +273,6 @@ class MyNaiveBayesClassifier:
         """
         # Store the predicted values
         y_predicted = []
-
         # Get the unique classes and their corresp priors (parallel lists)
         class_labels = self.priors.get_column("class label")
         # Go through each test instance
@@ -288,8 +287,9 @@ class MyNaiveBayesClassifier:
                     curr_attr = X_test[kk][col_index]
                     # Search the posterior table for: (attribute col == kk), (attribute value == curr_attr)
                     curr_posterior_row = self.posteriors.get_instance_from_key_pairs(["attribute column", "attribute value"], [col_index, curr_attr])
-                    # Get the posterior for the current class label and multiply to the probability
-                    probabilities[label_index] *= curr_posterior_row[0][label_index + 2] # offset of 2 for the attr col and attr val columns
+                    if curr_posterior_row != []:
+                        # Get the posterior for the current class label and multiply to the probability
+                        probabilities[label_index] *= curr_posterior_row[0][label_index + 2] # offset of 2 for the attr col and attr val columns
             # Find the index of the largest probability and return that as the predicted label
             largest_prob_index = probabilities.index(max(probabilities))
             y_predicted.append(class_labels[largest_prob_index])
@@ -843,10 +843,10 @@ class MyRandomForestClassifier:
             # Add the tree to the list
             all_trees.append(tree)
             # Get the accuracy of the tree
-            tree_accuracy = self.__get_single_tree_accuracy(tree, validation_X, validation_y)
+            tree_accuracy = self.__get_single_tree_accuracy__(tree, validation_X, validation_y)
             all_trees_accuracies.append(tree_accuracy)
 
-        # Now that the trees have been generated, go through and pick the M most accurate trees
+        # Now that the trees have been generated, go through and pick the M most accurate/precise trees
         sorted_accuracies = sorted(all_trees_accuracies.copy())
         accuracy_cutoff = sorted_accuracies[self.M]
         count = 0
@@ -873,20 +873,30 @@ class MyRandomForestClassifier:
 
         return y_predicted
 
-    def __get_single_tree_accuracy(self, tree, valid_X, valid_y):
+    def __get_single_tree_accuracy__(self, tree, valid_X, valid_y):
         pred_y = []
         for X_valid_inst in valid_X:
             # Get the prediction:
             pred_y.append(self.__get_tree_prediction__(X_valid_inst, tree))
 
         # Now get the count of how many were correctly classified
-        correct_count = 0
-        for kk in range(len(pred_y)):
-            if pred_y[kk] == valid_y[kk]:
-                correct_count += 1
+        # Use the average accuracy of each class label's accuracy
+        class_labels, class_counts = myutils.get_categorical_frequencies(valid_y)
+        class_correct_counts = [0 for _ in range(len(class_labels))]
+        class_total_counts = [0 for _ in range(len(class_labels))]
 
-        accuracy = correct_count / len(pred_y)
-        return accuracy
+        for kk in range(len(pred_y)):
+            # Get the class of the istance and its position
+            class_index = class_labels.index(valid_y[kk])
+            class_total_counts[class_index] += 1
+            if pred_y[kk] == valid_y[kk]:
+                # Correctly classified, so increase count
+                class_correct_counts[class_index] += 1
+        # Compute the accuracy for each class label
+        accuracies = [class_correct_counts[kk] / class_total_counts[kk] for kk in range(len(class_labels))]
+        mean_accuracy = sum(accuracies) / len(accuracies)
+
+        return mean_accuracy
 
     def __get_tree_accuracy__(self, valid_X, valid_y):
         # Now run the prediction:
