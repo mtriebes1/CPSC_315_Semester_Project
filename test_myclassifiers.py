@@ -434,12 +434,6 @@ def test_My_Random_Forest_Classifier_fit():
 
     trees = rand_forest_test.trees
 
-    for tree in trees:
-        print(tree)
-        print("\n")
-
-    assert True == False
-    
 def test_My_Random_Forest_Classifier_predict():
     # Object Declarations
     # Tests with N = 3, M = 2, F = 2 and seed = 1
