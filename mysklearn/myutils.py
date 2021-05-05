@@ -397,6 +397,7 @@ def remove_column(table, col_index):
     return new_table
 
 def get_num_matches(X, y, X_val, X_col_index, y_val):
+
     num_matches = 0
     for kk in range(len(X)):
         curr_X = X[kk][X_col_index]
@@ -405,3 +406,19 @@ def get_num_matches(X, y, X_val, X_col_index, y_val):
             num_matches += 1
             
     return num_matches
+
+
+
+
+def tdidt_predict(header, instance, tree):
+    info_type = tree[0]
+    if info_type == "Attribute":
+        instance_attribute_value = instance[header.index(tree[1])]
+        # Now I need to find which branch to follow recursively
+        for kk in range(2, len(tree)):
+            value_list = tree[kk]
+            if value_list[1] == instance_attribute_value:
+                # We have a match - recurse through the rest of tree
+                return tdidt_predict(header, instance, value_list[2])
+    else: # "Leaf"
+        return tree[1]
