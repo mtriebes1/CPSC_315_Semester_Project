@@ -803,11 +803,8 @@ class MyRandomForestClassifier:
         self.M = M
         self.F = F
 
-        # Seeds Random Number (for testing purposes)
-        if self.seed != None:
-            random.seed(self.seed)
-
-        print("seed:", self.seed)
+        #print("seed:", self.seed)
+    
     def fit(self, X, y):
         """Fits a random forest ensemble classifier to X_train and y_train using decision trees 
             created with the TDIDT (top down induction of decision tree) algorithm.
@@ -827,7 +824,7 @@ class MyRandomForestClassifier:
             Build a decision tree using the nested list representation described in class.
             Store the tree in the tree attribute.
             Use attribute indexes to construct default attribute names (e.g. "att0", "att1", ...).
-        """
+        """        
         # Generate the N Trees using a bootstrapped sample of the training  set 
         all_trees, all_trees_accuracies = [], [] # Create a list of all the trees created and aa parallel list of their accuracies
         for _ in range(self.N):
@@ -917,6 +914,10 @@ class MyRandomForestClassifier:
         return accuracy
 
     def __compute_random_attribute_subset__(self, values, F_value):
+        # Seeds Random Number (for testing purposes)
+        if self.seed != None:
+            random.seed(self.seed)
+        
         shuffled = values[:] # shallow copy
         random.shuffle(shuffled)
         return shuffled[:F_value]

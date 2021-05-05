@@ -417,8 +417,8 @@ def test_decision_tree_classifier_predict():
 
 def test_My_Random_Forest_Classifier_fit():
     # Object Declarations
-    # Tests with N = 3, M = 2, and F = 2
-    rand_forest_test = MyRandomForestClassifier(3, 2, 2, 3)
+    # Tests with N = 3, M = 2, F = 2 and seed = 0
+    rand_forest_test = MyRandomForestClassifier(3, 2, 2, 0)
     table = MyPyTable()
     
     # Variable Assignment and Declaration
@@ -432,14 +432,18 @@ def test_My_Random_Forest_Classifier_fit():
     rand_forest_test.header = interview_header
     rand_forest_test.fit(X_test, y_train)
 
-    #assert rand_forest_test.trees == test_trees
+    trees = rand_forest_test.trees
 
-    pass
+    for tree in trees:
+        print(tree)
+        print("\n")
+
+    assert True == False
     
 def test_My_Random_Forest_Classifier_predict():
     # Object Declarations
-    # Tests with N = 3, M = 2, F = 2 and seed = 0
-    rand_forest_test = MyRandomForestClassifier(3, 2, 2, 0)
+    # Tests with N = 3, M = 2, F = 2 and seed = 1
+    rand_forest_test = MyRandomForestClassifier(3, 2, 2, 1)
     table = MyPyTable()
     
     # Variable Assignment and Declaration
@@ -451,16 +455,17 @@ def test_My_Random_Forest_Classifier_predict():
         y_train.append(inst[-1])
         X_train.append(inst[:-1])
     
+    # Sets X_test
+    X_test = [ ["Junior", "Java", "yes", "no"], ["Junior", "Java", "yes", "yes"]]
+    
     # Tests on the Interview Dataset
     rand_forest_test.header = interview_header[:-1]
     rand_forest_test.fit(X_train, y_train)
-    y_predicted = rand_forest_test.predict(X_train)
+    y_predicted = rand_forest_test.predict(X_test)
 
     print("y_predicted:", y_predicted)
 
     # Trace Test
-    y_predicted_trace = ['False', 'False', 'True', 'True', 'True', 'False', 'True', 'False', 'True', 'True', 'True', 'True', 'True', 'False']
     
-    assert y_predicted == y_predicted_trace
-
-    pass
+    
+    assert y_predicted == ['True', 'False']
