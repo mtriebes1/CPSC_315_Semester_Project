@@ -791,17 +791,23 @@ class MyRandomForestClassifier:
         Loosely based on sklearn's DecisionTreeClassifier: https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html
         Terminology: instance = sample = row and attribute = feature = column
     """
-    def __init__(self, N, M, F):
+    def __init__(self, N, M, F, seed=None):
         """Initializer for MyDecisionTreeClassifier.
 
         """
         self.trees = None
         self.header = None
         self.attribute_domain = None
+        self.seed = seed
         self.N = N
         self.M = M
         self.F = F
 
+        # Seeds Random Number (for testing purposes)
+        if self.seed != None:
+            random.seed(self.seed)
+
+        print("seed:", self.seed)
     def fit(self, X, y):
         """Fits a random forest ensemble classifier to X_train and y_train using decision trees 
             created with the TDIDT (top down induction of decision tree) algorithm.
