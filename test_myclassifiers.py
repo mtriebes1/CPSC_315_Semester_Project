@@ -1,7 +1,8 @@
 import numpy as np
 import scipy.stats as stats 
 
-from mysklearn.myclassifiers import MySimpleLinearRegressor, MyKNeighborsClassifier, MyNaiveBayesClassifier, MyDecisionTreeClassifier
+from mysklearn.myclassifiers import MySimpleLinearRegressor, MyKNeighborsClassifier, MyNaiveBayesClassifier, MyDecisionTreeClassifier, MyRandomForestClassifier
+from mysklearn.mypytable import MyPyTable
 import mysklearn.myutils as myutils
 
 # note: order is actual/received student value, expected/solution
@@ -413,4 +414,34 @@ def test_decision_tree_classifier_predict():
     y_pred = myDecisionTreeClassifier.predict(X_test)
 
     assert y_pred == ["SECOND", "FIRST", "FIRST"]
+
+def test_My_Random_Forest_Classifier_fit():
+    # Object Declarations
+    # Tests with N = 3, M = 2, and F = 2
+    rand_forest_test = MyRandomForestClassifier(3, 2, 2)
+    table = MyPyTable()
     
+    # Variable Assignment and Declaration
+    table.data = interview_table
+    table.column_names = interview_header
+    
+    X_test = interview_table
+    y_train = table.get_column("interviewed_well")
+    
+    # Tests on the Interview Dataset
+    rand_forest_test.fit(X_test, y_train)
+
+    #print(rand_forest_test.trees)
+
+    for tree in rand_forest_test.trees:
+        print(tree)
+        print("\n")
+    
+    #assert True == False
+
+    pass
+    
+def test_My_Random_Forest_Classifier_predict():
+    # Tests on the Interview Dataset
+
+    pass
